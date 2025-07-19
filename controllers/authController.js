@@ -1,57 +1,104 @@
 const User = require('../models/userModel');
-const { hashPassword } = require('../utils/hash');
+const bcrypt = require('bcrypt');
+const { hashPassword } = require('../utils/hash')
+const step1 = async (req, res) => {
+  const { email, firstName, lastName } = req.body;
 
-// Step 1: Init Registration
-const registerStep1 = async (req, res) => {
-  const { firstName, lastName, email } = req.body;
-
-  if (!firstName || !lastName || !email) {
-    return res.status(400).json({ message: 'Step 1 fields are required' });
+  let user = await User.findOne({ email });
+  if (user && user.status === 'complete') {
+    return res.status(400).json({ error: 'User already registered' });
   }
 
-  const existing = await User.findOne({ email });
-  if (existing) return res.status(409).json({ message: 'Email already exists' });
-
-  const user = await User.create({ firstName, lastName, email, onboardingStep: 1 });
-  res.status(201).json({ userId: user._id });
-};
-
-// Generic update handler
-const updateStep = async (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
-
-  try {
-    const user = await User.findByIdAndUpdate(id, { ...data, onboardingStep: data.step }, { new: true });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    res.json({ message: `Step ${data.step} completed`, userId: user._id });
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating user', error: err.message });
+  if (!user) {
+    user = await User.create({ email, firstName, lastName });
+  } else {
+    user.firstName = firstName;
+    user.lastName = lastName;
+    await user.save();
   }
-};
 
-// Step 4: Password (with hashing)
-const registerStep4Password = async (req, res) => {
-  const { id } = req.params;
-  const { password } = req.body;
+  res.json({ userId: user._id });
+}
 
-  if (!password) return res.status(400).json({ message: 'Password is required' });
+const step2 = async (req, res) => {
+  const { gender } = req.body;
+  await User.findByIdAndUpdate(req.params.userId, { gender });
+  res.json({ success: true });
+}
 
+const step3 = async (req, res) => {
+  const { dateOfBirth } = req.body;
+  await User.findByIdAndUpdate(req.params.userId, { dateOfBirth });
+  res.json({ success: true });
+}
+
+const step4 = async (req, res) => {
   try {
+    const { password } = req.body;
+    const { userId } = req.params;
+
+    // Validate password
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password is required' 
+      });
+    }
+
+    // Optional: Add password strength validation
+    if (password.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    // Hash the password
     const hashedPassword = await hashPassword(password);
-    const user = await User.findByIdAndUpdate(id, { password: hashedPassword, onboardingStep: 4 }, { new: true });
 
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Update user with hashed password
+    await User.findByIdAndUpdate(userId, { 
+      password: hashedPassword,
+      step: 4 // Track completion of step 4
+    });
 
-    res.json({ message: 'Password saved successfully', userId: user._id });
-  } catch (err) {
-    res.status(500).json({ message: 'Error saving password', error: err.message });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error in step4:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
   }
 };
+
+const step5 = async (req, res) => {
+  const { country } = req.body;
+  await User.findByIdAndUpdate(req.params.userId, { country });
+  res.json({ success: true });
+}
+
+const step6 = async (req, res) => {
+  const { language } = req.body;
+  await User.findByIdAndUpdate(req.params.userId, { language });
+  res.json({ success: true });
+}
+
+const step7 = async (req, res) => {
+  const { proficiency } = req.body;
+  await User.findByIdAndUpdate(req.params.userId, {
+    proficiency,
+    status: 'complete'
+  });
+  res.json({ success: true });
+}
 
 module.exports = {
-  registerStep1,
-  updateStep,
-  registerStep4Password
-};
+  step1,
+  step2,
+  step3,
+  step4,
+  step5,
+  step6,
+  step7
+}

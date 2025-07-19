@@ -13,7 +13,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['Beginner', 'Intermediate', 'Advanced']
   },
-  onboardingStep: { type: Number, default: 1 }
+  status: {
+    type: String,
+    default: 'incomplete'
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
