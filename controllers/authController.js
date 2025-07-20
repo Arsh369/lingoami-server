@@ -1,6 +1,8 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
-const { hashPassword } = require('../utils/hash')
+const { hashPassword, comparePassword} = require('../utils/hash')
+const { generateToken } = require('../utils/token');
+
 const step1 = async (req, res) => {
   const { email, firstName, lastName } = req.body;
 
@@ -93,6 +95,63 @@ const step7 = async (req, res) => {
   res.json({ success: true });
 }
 
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. Validate input: Ensure email and password are provided
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // 2. Find the user by email in the database
+    const user = await User.findOne({ email });
+
+    // 3. Check if user exists and their registration status is 'complete'
+    if (!user || user.status !== 'complete') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid credentials or user not fully registered'
+      });
+    }
+
+    // 4. Compare the provided plain-text password with the hashed password
+    // using the comparePassword utility function.
+    const isMatch = await comparePassword(password, user.password);
+
+    // If passwords do not match, return an error
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // 5. Generate a JWT upon successful login
+    const token = generateToken(user._id);
+
+    // 6. Successful login: Send the token back to the client
+    res.json({
+      success: true,
+      message: 'Login successful',
+      token: token, // Send the generated JWT
+      userId: user._id,
+      email: user.email,
+      firstName: user.firstName
+    });
+
+  } catch (error) {
+    console.error('Error in loginUser:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   step1,
   step2,
@@ -100,5 +159,6 @@ module.exports = {
   step4,
   step5,
   step6,
-  step7
+  step7,
+  loginUser
 }
