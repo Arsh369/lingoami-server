@@ -92,7 +92,8 @@ const step7 = async (req, res) => {
     proficiency,
     status: 'complete'
   });
-  res.json({ success: true });
+  const token = generateToken(req.params.userId);
+  res.json({ success: true, token});
 }
 
 const loginUser = async (req, res) => {
@@ -152,6 +153,17 @@ const loginUser = async (req, res) => {
   }
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+
 module.exports = {
   step1,
   step2,
@@ -160,5 +172,6 @@ module.exports = {
   step5,
   step6,
   step7,
-  loginUser
+  loginUser,
+  getAllUsers
 }

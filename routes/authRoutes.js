@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { step1, step2, step3, step4, step5, step6, step7, loginUser} = require('../controllers/authController')
+const { step1, step2, step3, step4, step5, step6, step7, loginUser, getAllUsers} = require('../controllers/authController')
 // Step 1: Create or retrieve user by email
 router.post('/step1', step1);
 
@@ -20,5 +20,7 @@ router.put('/step6/:userId', step6);
 router.put('/step7/:userId', step7);
 
 router.post('/login', loginUser)
+
+router.get('/users', getAllUsers);
 
 module.exports = router;
