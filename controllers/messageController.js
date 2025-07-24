@@ -12,6 +12,7 @@ exports.sendMessage = async (req, res) => {
       from,
       to,
       message,
+      createdAt: new Date().toISOString(),
     });
 
     res.status(201).json(newMessage);

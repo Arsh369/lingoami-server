@@ -155,13 +155,18 @@ const loginUser = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({});
-    res.json(users);
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.log("Decoded user:", req.user); // 🔍
+
+    const currentUserId = req.user._id;
+
+    const users = await User.find({ _id: { $ne: currentUserId } }).select("-password");
+    res.status(200).json(users);
+  } catch (err) {
+    console.error("Error in getAllUsers:", err); // 🔍
+    res.status(500).json({ error: "Failed to fetch users" });
   }
 };
+
 
 
 module.exports = {
