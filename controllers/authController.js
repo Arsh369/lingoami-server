@@ -1,14 +1,14 @@
-const User = require('../models/userModel');
-const bcrypt = require('bcrypt');
-const { hashPassword, comparePassword} = require('../utils/hash')
-const { generateToken } = require('../utils/token');
-
+const User = require("../models/userModel");
+const bcrypt = require("bcrypt");
+const { hashPassword, comparePassword } = require("../utils/hash");
+const { generateToken } = require("../utils/token");
+const countries = require('../../shared/countries.json');
 const step1 = async (req, res) => {
   const { email, firstName, lastName } = req.body;
 
   let user = await User.findOne({ email });
-  if (user && user.status === 'complete') {
-    return res.status(400).json({ error: 'User already registered' });
+  if (user && user.status === "complete") {
+    return res.status(400).json({ error: "User already registered" });
   }
 
   if (!user) {
@@ -20,19 +20,19 @@ const step1 = async (req, res) => {
   }
 
   res.json({ userId: user._id });
-}
+};
 
 const step2 = async (req, res) => {
   const { gender } = req.body;
   await User.findByIdAndUpdate(req.params.userId, { gender });
   res.json({ success: true });
-}
+};
 
 const step3 = async (req, res) => {
   const { dateOfBirth } = req.body;
   await User.findByIdAndUpdate(req.params.userId, { dateOfBirth });
   res.json({ success: true });
-}
+};
 
 const step4 = async (req, res) => {
   try {
@@ -41,17 +41,17 @@ const step4 = async (req, res) => {
 
     // Validate password
     if (!password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Password is required' 
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
       });
     }
 
     // Optional: Add password strength validation
     if (password.length < 6) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Password must be at least 6 characters long' 
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters long",
       });
     }
 
@@ -59,17 +59,17 @@ const step4 = async (req, res) => {
     const hashedPassword = await hashPassword(password);
 
     // Update user with hashed password
-    await User.findByIdAndUpdate(userId, { 
+    await User.findByIdAndUpdate(userId, {
       password: hashedPassword,
-      step: 4 // Track completion of step 4
+      step: 4, // Track completion of step 4
     });
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error in step4:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    console.error("Error in step4:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 };
@@ -78,23 +78,23 @@ const step5 = async (req, res) => {
   const { country } = req.body;
   await User.findByIdAndUpdate(req.params.userId, { country });
   res.json({ success: true });
-}
+};
 
 const step6 = async (req, res) => {
   const { language } = req.body;
   await User.findByIdAndUpdate(req.params.userId, { language });
   res.json({ success: true });
-}
+};
 
 const step7 = async (req, res) => {
   const { proficiency } = req.body;
   await User.findByIdAndUpdate(req.params.userId, {
     proficiency,
-    status: 'complete'
+    status: "complete",
   });
   const token = generateToken(req.params.userId);
-  res.json({ success: true, token});
-}
+  res.json({ success: true, token });
+};
 
 const loginUser = async (req, res) => {
   try {
@@ -104,7 +104,7 @@ const loginUser = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required'
+        message: "Email and password are required",
       });
     }
 
@@ -112,10 +112,10 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     // 3. Check if user exists and their registration status is 'complete'
-    if (!user || user.status !== 'complete') {
+    if (!user || user.status !== "complete") {
       return res.status(400).json({
         success: false,
-        message: 'Invalid credentials or user not fully registered'
+        message: "Invalid credentials or user not fully registered",
       });
     }
 
@@ -127,28 +127,37 @@ const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid credentials'
+        message: "Invalid credentials",
       });
     }
 
     // 5. Generate a JWT upon successful login
     const token = generateToken(user._id);
 
+const userCountry = user.country;
+console.log("userCountry:", userCountry);
+const matchedCountry = countries.find(c => c.name === userCountry);
+const countryCode = matchedCountry ? matchedCountry.code : null;
+
     // 6. Successful login: Send the token back to the client
     res.json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       token: token, // Send the generated JWT
       userId: user._id,
       email: user.email,
-      firstName: user.firstName
+      firstName: user.firstName,
+      lastName: user.lastName,
+      country: user.country,
+      countryCode: countryCode,
+      language: user.language,
+      proficiency: user.proficiency,
     });
-
   } catch (error) {
-    console.error('Error in loginUser:', error);
+    console.error("Error in loginUser:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: "Internal server error",
     });
   }
 };
@@ -159,15 +168,15 @@ const getAllUsers = async (req, res) => {
 
     const currentUserId = req.user._id;
 
-    const users = await User.find({ _id: { $ne: currentUserId } }).select("-password");
+    const users = await User.find({ _id: { $ne: currentUserId } }).select(
+      "-password"
+    );
     res.status(200).json(users);
   } catch (err) {
     console.error("Error in getAllUsers:", err); // 🔍
     res.status(500).json({ error: "Failed to fetch users" });
   }
 };
-
-
 
 module.exports = {
   step1,
@@ -178,5 +187,5 @@ module.exports = {
   step6,
   step7,
   loginUser,
-  getAllUsers
-}
+  getAllUsers,
+};
