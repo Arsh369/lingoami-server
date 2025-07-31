@@ -2,7 +2,7 @@ const User = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const { hashPassword, comparePassword } = require("../utils/hash");
 const { generateToken } = require("../utils/token");
-const countries = require('../../shared/countries.json');
+const countries = require('../utils/countries.json');
 const step1 = async (req, res) => {
   const { email, firstName, lastName } = req.body;
 
