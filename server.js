@@ -15,7 +15,7 @@ const server = http.createServer(app);
 // Configure Socket.IO with CORS
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Your frontend dev URL
+    origin: "https://lingoami-client.vercel.app", // Your frontend dev URL
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -27,7 +27,7 @@ connectDB();
 // Middlewares
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://lingoami-client.vercel.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
